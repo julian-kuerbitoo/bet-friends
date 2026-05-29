@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #f1f0f5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100svh;
+  background: #0b1e2d;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* CSS variables — overridden dynamically by ConfigContext */
+:root {
+  --accent-1: #f97316;
+  --accent-2: #ea580c;
+  --bg-top: #0b1e2d;
+  --bg-bottom: #0f0820;
+}
+
+/* Background gradient that transitions teal → purple → pink */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 120% 70% at 50% 85%, rgba(180, 40, 200, 0.6) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 50% at 60% 60%, rgba(120, 40, 220, 0.5) 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg-top) 0%, #101828 30%, #1a0f30 60%, var(--bg-bottom) 100%);
+}
+
+/* Orange accent utility — uses CSS vars */
+.accent-gradient {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+}
+
+/* Glass card — light frosted */
+.glass-card {
+  background: rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Pill button glass */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Orange accent */
+.orange-btn {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 0; }
+
+/* Input styles */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+}
