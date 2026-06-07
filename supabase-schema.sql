@@ -55,6 +55,19 @@ create policy "Public eliminations" on eliminations for all using (true) with ch
 -- Storage policy
 create policy "Public images" on storage.objects for all using (bucket_id = 'bet-images') with check (bucket_id = 'bet-images');
 
+-- USERS
+create table users (
+  id uuid primary key default gen_random_uuid(),
+  nickname text unique not null,
+  avatar_url text,
+  avatar_color text not null default '#7c3aed',
+  created_at timestamptz not null default now()
+);
+
+alter table users enable row level security;
+create policy "Public users" on users for all using (true) with check (true);
+alter publication supabase_realtime add table users;
+
 -- APP CONFIG (for admin panel)
 create table app_config (
   key text primary key,

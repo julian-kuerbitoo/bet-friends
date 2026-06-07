@@ -27,3 +27,19 @@ export function getNickname() {
 export function setNickname(nickname) {
   localStorage.setItem('bf_nickname', nickname)
 }
+
+export function getUserId() {
+  return localStorage.getItem('bf_user_id')
+}
+
+export function getAvatarColor() {
+  return localStorage.getItem('bf_avatar_color') || '#7c3aed'
+}
+
+export function getAvatarUrl() {
+  return localStorage.getItem('bf_avatar_url') || null
+}
+
+export function isTourDone() {
+  return localStorage.getItem('bf_tour_done') === '1'
+}
