@@ -9,6 +9,7 @@ import Home from './pages/Home'
 import CreateBet from './pages/CreateBet'
 import BetDetail from './pages/BetDetail'
 import Leaderboard from './pages/Leaderboard'
+import Vault from './pages/Vault'
 import Admin from './pages/Admin'
 
 function AppContent() {
@@ -33,6 +34,7 @@ function AppContent() {
         <Route path="/create" element={<CreateBet />} />
         <Route path="/bet/:id" element={<BetDetail />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/vault" element={<Vault />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
