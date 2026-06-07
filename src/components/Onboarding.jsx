@@ -57,6 +57,7 @@ export default function Onboarding({ onDone }) {
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const accentGrad = `linear-gradient(135deg, ${accent_1}, ${accent_2})`
 
@@ -100,7 +101,8 @@ export default function Onboarding({ onDone }) {
 
     if (error) {
       setSaving(false)
-      return setNickError('Error guardando usuario. Intentá de nuevo.')
+      setSaveError('Error al guardar: ' + (error.message || 'intentá de nuevo'))
+      return
     }
 
     setNickname(nick)
@@ -250,6 +252,11 @@ export default function Onboarding({ onDone }) {
                 : <><Check size={16} /> Listo, entrar</>
               }
             </button>
+            {saveError && (
+              <p style={{ color: '#fb923c', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
+                ⚠️ {saveError}
+              </p>
+            )}
           </div>
         )}
 
