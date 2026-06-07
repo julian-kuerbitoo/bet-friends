@@ -38,7 +38,8 @@ export default function CreateBet() {
   const navigate = useNavigate()
   const nickname = getNickname()
   const [step, setStep] = useState(1)
-  const [form, setForm] = useState({ title: '', description: '', end_date: '', end_time: '23:59', prize_text: '' })
+  const EMOJIS = ['🏆','🎯','⚽','🏀','🎮','🎲','🍺','🚗','🎸','🥊','🤑','🔥','👑','💀','🎳','🏋️']
+  const [form, setForm] = useState({ title: '', description: '', end_date: '', end_time: '23:59', prize_text: '', watermark_emoji: '🏆' })
   const [prizeImage, setPrizeImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -81,6 +82,7 @@ export default function CreateBet() {
       const { data: bet, error: betError } = await supabase.from('bets').insert({
         title: form.title.trim(), description: form.description.trim() || null,
         prize_text: form.prize_text.trim() || null, prize_image_url,
+        watermark_emoji: form.watermark_emoji || '🏆',
         end_date: endDateTime.toISOString(), invite_code: generateInviteCode(),
         created_by: nickname, status: 'active',
       }).select().single()
@@ -178,6 +180,29 @@ export default function CreateBet() {
                 <input type="text" value={form.prize_text} onChange={e => handleField('prize_text', e.target.value)}
                   placeholder="Ej: El perdedor invita la cena" style={INPUT} maxLength={200} autoFocus />
               </div>
+              {/* Emoji watermark picker */}
+              <div>
+                <label style={LABEL}>Emoji de la tarjeta</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {EMOJIS.map(em => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => handleField('watermark_emoji', em)}
+                      style={{
+                        width: 40, height: 40, borderRadius: 10, fontSize: 20,
+                        background: form.watermark_emoji === em ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.06)',
+                        border: form.watermark_emoji === em ? '2px solid rgba(249,115,22,0.7)' : '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {imagePreview ? (
                 <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden' }}>
                   <img src={imagePreview} alt="Premio" style={{ width: '100%', height: 176, objectFit: 'cover', display: 'block' }} />

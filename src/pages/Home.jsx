@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { getNickname } from '../lib/utils'
 import BetCard from '../components/BetCard'
 import SwipeCard from '../components/SwipeCard'
+import DraggableList from '../components/DraggableList'
 
 function getHiddenIds() {
   try { return JSON.parse(localStorage.getItem('bf_hidden') || '[]') } catch { return [] }
@@ -294,17 +295,19 @@ export default function Home() {
               <>
                 {myActiveBets.length > 0 && (
                   <section>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {myActiveBets.map(bet => (
+                    <DraggableList
+                      items={myActiveBets}
+                      storageKey={`bf_order_${nickname}`}
+                      gap={10}
+                      renderItem={(bet) => (
                         <SwipeCard
-                          key={bet.id}
                           onSwipeLeft={() => setConfirm({ type: 'delete', bet })}
                           onSwipeRight={() => setConfirm({ type: 'vault', bet })}
                         >
                           <BetCard bet={bet} />
                         </SwipeCard>
-                      ))}
-                    </div>
+                      )}
+                    />
                   </section>
                 )}
 
@@ -313,17 +316,19 @@ export default function Home() {
                     <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
                       Otras apuestas
                     </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {otherBets.map(bet => (
+                    <DraggableList
+                      items={otherBets}
+                      storageKey={`bf_order_other_${nickname}`}
+                      gap={10}
+                      renderItem={(bet) => (
                         <SwipeCard
-                          key={bet.id}
                           onSwipeLeft={() => setConfirm({ type: 'delete', bet })}
                           onSwipeRight={() => setConfirm({ type: 'vault', bet })}
                         >
                           <BetCard bet={bet} />
                         </SwipeCard>
-                      ))}
-                    </div>
+                      )}
+                    />
                   </section>
                 )}
               </>

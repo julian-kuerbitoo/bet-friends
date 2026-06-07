@@ -10,7 +10,6 @@ const CARD_STYLE = {
   borderRadius: '20px',
   overflow: 'hidden',
   width: '100%',
-  maxWidth: '460px',
   textAlign: 'left',
   transition: 'transform 0.15s',
   position: 'relative',
@@ -23,6 +22,8 @@ export default function BetCard({ bet }) {
   const active = bet.participants?.filter(p => !p.is_eliminated) ?? []
   const total = bet.participants?.length ?? 0
   const isExpired = new Date(bet.end_date) <= new Date()
+  const prizeImg = bet.prize_image_url
+  const emoji = bet.watermark_emoji || '🏆'
 
   return (
     <button
@@ -33,11 +34,24 @@ export default function BetCard({ bet }) {
       onTouchStart={e => e.currentTarget.style.transform = 'scale(0.97)'}
       onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
     >
-      {/* Watermark */}
-      <div style={{
-        position: 'absolute', right: 12, bottom: 4,
-        fontSize: 80, opacity: 0.05, pointerEvents: 'none', lineHeight: 1,
-      }}>🏆</div>
+      {/* Watermark — prize image or emoji */}
+      {prizeImg ? (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 0,
+          backgroundImage: `url(${prizeImg})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          opacity: 0.1,
+          filter: 'blur(2px)',
+          pointerEvents: 'none',
+        }} />
+      ) : (
+        <div style={{
+          position: 'absolute', right: 12, bottom: 4,
+          fontSize: 80, opacity: 0.07, pointerEvents: 'none', lineHeight: 1, zIndex: 0,
+        }}>
+          {emoji}
+        </div>
+      )}
 
       <div style={{ padding: '20px', position: 'relative', zIndex: 1 }}>
         {/* Top row */}
@@ -46,11 +60,8 @@ export default function BetCard({ bet }) {
             {bet.title}
           </h3>
           <span style={{
-            flexShrink: 0,
-            fontSize: 11,
-            fontWeight: 600,
-            padding: '4px 10px',
-            borderRadius: 99,
+            flexShrink: 0, fontSize: 11, fontWeight: 600,
+            padding: '4px 10px', borderRadius: 99,
             background: isExpired ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.15)',
             color: isExpired ? '#fca5a5' : 'rgba(255,255,255,0.9)',
             border: isExpired ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.2)',
@@ -60,12 +71,10 @@ export default function BetCard({ bet }) {
           </span>
         </div>
 
-        {/* Created by */}
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, margin: '0 0 8px' }}>
           Created by: {bet.created_by}
         </p>
 
-        {/* Description */}
         {bet.description && (
           <p style={{
             color: 'rgba(255,255,255,0.65)', fontSize: 13, margin: '0 0 16px',
@@ -75,7 +84,6 @@ export default function BetCard({ bet }) {
           </p>
         )}
 
-        {/* Footer */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)',
