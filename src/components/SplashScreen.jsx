@@ -6,8 +6,8 @@ export default function SplashScreen({ onDone }) {
   const [phase, setPhase] = useState('in') // in → visible → out
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('out'), 1800)
-    const t2 = setTimeout(() => onDone(), 2400)
+    const t1 = setTimeout(() => setPhase('out'), 3200)
+    const t2 = setTimeout(() => onDone(), 3800)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [])
 
@@ -39,12 +39,10 @@ export default function SplashScreen({ onDone }) {
         {/* Icon */}
         <div style={{
           width: 88, height: 88, borderRadius: 28,
-          background: accentGrad,
           boxShadow: `0 16px 48px ${accent_1}70`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 40,
+          overflow: 'hidden',
         }}>
-          {splash_emoji}
+          <img src="/icon-192.png" alt="icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
 
         {/* Wordmark */}
