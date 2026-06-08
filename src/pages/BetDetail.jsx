@@ -21,6 +21,8 @@ export default function BetDetail() {
   const [expired, setExpired] = useState(false)
   const [copied, setCopied] = useState(false)
   const [joining, setJoining] = useState(false)
+  const [joinValue, setJoinValue] = useState('')
+  const [showJoinInput, setShowJoinInput] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -49,8 +51,9 @@ export default function BetDetail() {
 
   async function handleJoin() {
     setJoining(true)
-    await supabase.from('participants').insert({ bet_id: id, nickname, is_eliminated: false })
+    await supabase.from('participants').insert({ bet_id: id, nickname, is_eliminated: false, bet_value: joinValue.trim() || null })
     setJoining(false)
+    setShowJoinInput(false)
   }
 
   async function handleEliminate(reason) {
@@ -178,10 +181,44 @@ export default function BetDetail() {
 
         {/* Join */}
         {!isMember && !isExpired && (
-          <button onClick={handleJoin} disabled={joining}
-            style={{ ...ORANGE_BTN, padding: '15px 24px', width: '100%', marginBottom: 20, opacity: joining ? 0.5 : 1 }}>
-            {joining ? 'Uniéndose...' : 'Unirse a la apuesta'}
-          </button>
+          <div style={{ marginBottom: 20 }}>
+            {showJoinInput ? (
+              <div style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>
+                  ¿Cuál es tu valor en esta apuesta?
+                </p>
+                <input
+                  autoFocus
+                  type="text"
+                  value={joinValue}
+                  onChange={e => setJoinValue(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleJoin()}
+                  placeholder={bet.bet_value ? `Ej: ${bet.bet_value}` : 'Tu predicción...'}
+                  maxLength={80}
+                  style={{
+                    background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(249,115,22,0.4)',
+                    borderRadius: 10, padding: '12px 14px', color: 'white',
+                    fontSize: 15, fontWeight: 600, outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={handleJoin} disabled={joining}
+                    style={{ ...ORANGE_BTN, flex: 1, padding: '13px 16px', opacity: joining ? 0.5 : 1 }}>
+                    {joining ? 'Uniéndose...' : 'Confirmar y unirse'}
+                  </button>
+                  <button onClick={() => setShowJoinInput(false)}
+                    style={{ padding: '13px 14px', borderRadius: 99, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13 }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setShowJoinInput(true)}
+                style={{ ...ORANGE_BTN, padding: '15px 24px', width: '100%' }}>
+                Unirse a la apuesta
+              </button>
+            )}
+          </div>
         )}
 
         {/* Active participants */}
@@ -194,10 +231,17 @@ export default function BetDetail() {
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
                     {p.nickname[0].toUpperCase()}
                   </div>
-                  <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>
-                    {p.nickname}
-                    {p.nickname === nickname && <span style={{ color: '#fdba74', fontSize: 12, marginLeft: 6 }}>(tú)</span>}
-                  </span>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{p.nickname}</span>
+                      {p.nickname === nickname && <span style={{ color: '#fdba74', fontSize: 11 }}>(tú)</span>}
+                    </div>
+                    {p.bet_value && (
+                      <span style={{ fontSize: 12, color: 'rgba(249,115,22,0.85)', fontWeight: 600, marginTop: 2, display: 'block' }}>
+                        {p.bet_value}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {!isExpired && isMember && p.nickname !== nickname && (
                   <button onClick={() => setEliminating(p.nickname)}
@@ -224,7 +268,10 @@ export default function BetDetail() {
                         {p.nickname[0].toUpperCase()}
                       </div>
                       <div>
-                        <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 600, fontSize: 14, textDecoration: 'line-through' }}>{p.nickname}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 600, fontSize: 14, textDecoration: 'line-through' }}>{p.nickname}</span>
+                          {p.bet_value && <span style={{ fontSize: 11, color: 'rgba(249,115,22,0.3)', fontWeight: 600 }}>{p.bet_value}</span>}
+                        </div>
                         {elim && <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12, margin: '2px 0 0' }}>Por {elim.eliminated_by}: "{elim.reason}"</p>}
                       </div>
                     </div>

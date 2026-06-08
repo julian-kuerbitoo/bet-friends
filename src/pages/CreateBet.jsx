@@ -87,7 +87,7 @@ export default function CreateBet() {
         created_by: nickname, status: 'active',
       }).select().single()
       if (betError) throw betError
-      await supabase.from('participants').insert({ bet_id: bet.id, nickname, is_eliminated: false })
+      await supabase.from('participants').insert({ bet_id: bet.id, nickname, is_eliminated: false, bet_value: form.bet_value.trim() || null })
       navigate(`/bet/${bet.id}`)
     } catch {
       setError('Error al crear. Intentá de nuevo.')
