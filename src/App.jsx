@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { getNickname, isTourDone } from './lib/utils'
-import { registerServiceWorker, requestNotificationPermission } from './lib/notifications'
+import { registerServiceWorker, requestNotificationPermission, setupPushSubscription } from './lib/notifications'
 import { ConfigProvider, useConfig } from './context/ConfigContext'
 import SplashScreen from './components/SplashScreen'
 import Onboarding from './components/Onboarding'
@@ -21,12 +21,18 @@ function AppContent() {
 
   useEffect(() => {
     registerServiceWorker()
-    if (nickname) requestNotificationPermission()
+    if (nickname) {
+      requestNotificationPermission().then(granted => {
+        if (granted) setupPushSubscription(nickname)
+      })
+    }
   }, [nickname])
 
   function handleOnboardingDone(nick) {
     setNickname(nick)
-    requestNotificationPermission()
+    requestNotificationPermission().then(granted => {
+      if (granted) setupPushSubscription(nick)
+    })
     if (!isTourDone()) setShowTour(true)
   }
 
