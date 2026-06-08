@@ -50,6 +50,24 @@ export async function setupPushSubscription(nickname) {
   }
 }
 
+// Send push via Supabase Edge Function
+export async function sendPush({ nickname, title, body, url = '/' }) {
+  try {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+    await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({ nickname, title, body, url }),
+    })
+  } catch (e) {
+    console.warn('sendPush failed:', e)
+  }
+}
+
 // Fallback: local notification when tab is open
 export function showLocalNotification(title, body, url = '/') {
   if (Notification.permission !== 'granted') return

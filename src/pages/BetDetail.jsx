@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Share2, Clock, Users, Check, Skull, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getNickname } from '../lib/utils'
-import { showLocalNotification } from '../lib/notifications'
+import { showLocalNotification, sendPush } from '../lib/notifications'
 import { CARD, ORANGE_BTN, GLASS_BTN, LABEL, PAGE_PADDING, SECTION_TITLE } from '../lib/styles'
 import CountdownTimer from '../components/CountdownTimer'
 import EliminationModal from '../components/EliminationModal'
@@ -46,8 +46,24 @@ export default function BetDetail() {
   const handleExpire = useCallback(() => {
     if (expired) return
     setExpired(true)
-    showLocalNotification('¡Tiempo! ⏰', `La apuesta "${bet?.title}" terminó.`, window.location.href)
-  }, [expired, bet])
+    const url = window.location.href
+    showLocalNotification('¡Tiempo! ⏰', `La apuesta "${bet?.title}" terminó.`, url)
+
+    // Notify all active participants
+    const active = participants.filter(p => !p.is_eliminated)
+    const winners = active.length === 1
+
+    active.forEach(p => {
+      sendPush({
+        nickname: p.nickname,
+        title: winners ? '🏆 ¡Ganaste!' : '⏰ ¡Apuesta terminada!',
+        body: winners
+          ? `Ganaste la apuesta "${bet?.title}"!`
+          : `La apuesta "${bet?.title}" terminó. ¡Mirá quién ganó!`,
+        url,
+      })
+    })
+  }, [expired, bet, participants])
 
   async function handleJoin() {
     setJoining(true)
@@ -61,6 +77,26 @@ export default function BetDetail() {
     if (!target) return
     await supabase.from('participants').update({ is_eliminated: true, eliminated_at: new Date().toISOString(), eliminated_by: nickname }).eq('id', target.id)
     await supabase.from('eliminations').insert({ bet_id: id, participant_id: target.id, participant_nickname: target.nickname, eliminated_by: nickname, reason })
+
+    // Notify eliminated player
+    sendPush({
+      nickname: target.nickname,
+      title: '💀 Te eliminaron',
+      body: `${nickname} te descartó de "${bet.title}": "${reason}"`,
+      url: window.location.href,
+    })
+
+    // Check if only 1 active player remains → notify winner
+    const stillActive = participants.filter(p => !p.is_eliminated && p.nickname !== target.nickname)
+    if (stillActive.length === 1) {
+      sendPush({
+        nickname: stillActive[0].nickname,
+        title: '🏆 ¡Ganaste la apuesta!',
+        body: `Sos el último en pie en "${bet.title}"!`,
+        url: window.location.href,
+      })
+    }
+
     setEliminating(null)
   }
 
