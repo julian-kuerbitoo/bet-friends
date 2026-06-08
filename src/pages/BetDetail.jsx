@@ -4,52 +4,47 @@ import { ArrowLeft, Share2, Clock, Users, Check, Skull, RotateCcw, Edit2, X } fr
 import { supabase } from '../lib/supabase'
 import { getNickname } from '../lib/utils'
 import { showLocalNotification, sendPush } from '../lib/notifications'
-import { CARD, ORANGE_BTN, GLASS_BTN, LABEL, PAGE_PADDING, SECTION_TITLE } from '../lib/styles'
+import { CARD, ORANGE_BTN, GLASS_BTN, PAGE_PADDING, SECTION_TITLE } from '../lib/styles'
 import CountdownTimer from '../components/CountdownTimer'
 import EliminationModal from '../components/EliminationModal'
 import UserAvatar from '../components/UserAvatar'
 
-// ── Type badge ────────────────────────────────────────────────────────────────
+// ── Type meta ─────────────────────────────────────────────────────────────────
 const TYPE_META = {
   cuantitativa: { emoji: '🔢', label: 'Cuantitativa' },
   ranking:      { emoji: '🏅', label: 'Ranking' },
   tiempo:       { emoji: '⏱️', label: 'Tiempo' },
 }
 
-// ── Ranking order selector ────────────────────────────────────────────────────
+// ── Ranking order selector (prediction input) ─────────────────────────────────
 function RankingSelector({ items, value, onChange }) {
-  // value = array of strings (ordered picks so far)
   const remaining = items.filter(item => !value.includes(item))
-
-  function pick(item) { onChange([...value, item]) }
-  function remove(idx) { onChange(value.filter((_, i) => i !== idx)) }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Ordered picks so far */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Placed so far */}
       {value.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {value.map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)', borderRadius: 10, padding: '8px 12px' }}>
-              <span style={{ color: '#f97316', fontWeight: 800, fontSize: 13, width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(249,115,22,0.09)', border: '1px solid rgba(249,115,22,0.28)', borderRadius: 12, padding: '10px 14px' }}>
+              <span style={{ color: '#f97316', fontWeight: 900, fontSize: 16, width: 22, textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
+              <div style={{ width: 1, height: 18, background: 'rgba(249,115,22,0.25)', flexShrink: 0 }} />
               <span style={{ color: 'white', fontWeight: 600, fontSize: 14, flex: 1 }}>{item}</span>
-              <button type="button" onClick={() => remove(i)}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 4, display: 'flex' }}>
-                <X size={13} />
+              <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))}
+                style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 6, width: 26, height: 26, color: 'rgba(255,255,255,0.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <X size={12} />
               </button>
             </div>
           ))}
         </div>
       )}
-
-      {/* Remaining items */}
+      {/* Remaining (tappable) */}
       {remaining.length > 0 && (
-        <div>
-          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginBottom: 8 }}>Tocá para ordenar:</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11, fontWeight: 600, margin: 0 }}>Tocá para agregar al ranking:</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {remaining.map((item, i) => (
-              <button key={i} type="button" onClick={() => pick(item)}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 99, padding: '7px 14px', color: 'rgba(255,255,255,0.7)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              <button key={i} type="button" onClick={() => onChange([...value, item])}
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 99, padding: '8px 16px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
                 className="btn-press">
                 {item}
               </button>
@@ -57,18 +52,144 @@ function RankingSelector({ items, value, onChange }) {
           </div>
         </div>
       )}
-      {remaining.length === 0 && value.length === items.length && (
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>✅ Orden completo</p>
+      {remaining.length === 0 && value.length === items.length && value.length > 0 && (
+        <p style={{ color: '#86efac', fontSize: 12, fontWeight: 600 }}>✅ Orden completo</p>
       )}
     </div>
   )
 }
 
-// ── Current value inline editor (creator only) ─────────────────────────────
+// ── Live ranking tracker (replaces current_value for ranking bets) ─────────────
+function RankingLiveTracker({ bet, isCreator, onUpdate }) {
+  // confirmed = ordered array of item names (index 0 = 1st place)
+  const confirmed = (() => { try { return JSON.parse(bet.current_value || '[]') } catch { return [] } })()
+  const allItems = bet.ranking_items || []
+  const remaining = allItems.filter(item => !confirmed.includes(item))
+  const [placingItem, setPlacingItem] = useState(null) // item name pending confirmation
+  const [saving, setSaving] = useState(false)
+
+  async function confirmPlace(item) {
+    setSaving(true)
+    const newConfirmed = [...confirmed, item]
+    await supabase.from('bets').update({ current_value: JSON.stringify(newConfirmed) }).eq('id', bet.id)
+    setSaving(false)
+    setPlacingItem(null)
+    onUpdate(JSON.stringify(newConfirmed))
+  }
+
+  const nextPosition = confirmed.length + 1
+
+  return (
+    <>
+      <div style={{ ...CARD, padding: 18, marginBottom: 20 }}>
+        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+          🏅 Ranking en vivo
+        </p>
+
+        {/* Confirmed positions */}
+        {confirmed.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: remaining.length > 0 ? 14 : 0 }}>
+            {confirmed.map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: i < confirmed.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 10, flexShrink: 0,
+                  background: i === 0 ? 'rgba(250,204,21,0.18)' : i === 1 ? 'rgba(148,163,184,0.15)' : i === 2 ? 'rgba(180,116,62,0.18)' : 'rgba(255,255,255,0.07)',
+                  border: `1px solid ${i === 0 ? 'rgba(250,204,21,0.35)' : i === 1 ? 'rgba(148,163,184,0.25)' : i === 2 ? 'rgba(180,116,62,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: i < 3 ? 14 : 12,
+                  fontWeight: 900,
+                  color: i === 0 ? '#fde68a' : i === 1 ? '#cbd5e1' : i === 2 ? '#c6895a' : 'rgba(255,255,255,0.4)',
+                }}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                </div>
+                <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Remaining items (creator can tap X to confirm next position) */}
+        {remaining.length > 0 && (
+          <div>
+            {confirmed.length > 0 && (
+              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, marginBottom: 10 }}>
+                {isCreator ? `Tocá la X cuando salga la posición #${nextPosition}:` : 'Todavía en juego:'}
+              </p>
+            )}
+            {confirmed.length === 0 && (
+              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, marginBottom: 10 }}>
+                {isCreator ? `Tocá la X en el que salga primero (posición #1):` : 'El creador irá confirmando posiciones:'}
+              </p>
+            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {remaining.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 99, overflow: 'hidden' }}>
+                  <span style={{ padding: '7px 12px 7px 14px', color: 'rgba(255,255,255,0.7)', fontWeight: 600, fontSize: 13 }}>{item}</span>
+                  {isCreator && (
+                    <button type="button" onClick={() => setPlacingItem(item)}
+                      style={{ padding: '7px 12px 7px 6px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      className="btn-press">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {remaining.length === 0 && confirmed.length === allItems.length && allItems.length > 0 && (
+          <p style={{ color: '#86efac', fontSize: 13, fontWeight: 600, marginTop: 4 }}>🏁 Ranking completo</p>
+        )}
+
+        {allItems.length === 0 && (
+          <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Sin ítems definidos</p>
+        )}
+      </div>
+
+      {/* Confirmation popup */}
+      {placingItem && (
+        <>
+          <div onClick={() => !saving && setPlacingItem(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
+          <div className="anim-sheet-up" style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 41,
+            background: 'rgba(14,10,28,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px 24px 0 0',
+            padding: '28px 24px 44px',
+          }}>
+            <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 12 }}>
+              {nextPosition === 1 ? '🥇' : nextPosition === 2 ? '🥈' : nextPosition === 3 ? '🥉' : '🏅'}
+            </div>
+            <h3 style={{ color: 'white', fontWeight: 900, fontSize: 18, textAlign: 'center', margin: '0 0 8px' }}>
+              ¿Confirmar posición #{nextPosition}?
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, textAlign: 'center', margin: '0 0 26px' }}>
+              <span style={{ color: 'white', fontWeight: 700 }}>{placingItem}</span> quedó en el lugar #{nextPosition}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => confirmPlace(placingItem)} disabled={saving}
+                style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', border: 'none', borderRadius: 14, padding: '15px', color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
+                {saving ? 'Guardando...' : `Sí, posición #${nextPosition}`}
+              </button>
+              <button onClick={() => setPlacingItem(null)} disabled={saving}
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '14px', color: 'rgba(255,255,255,0.55)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
+// ── Current value editor (cuantitativa / tiempo) ──────────────────────────────
 function CurrentValueEditor({ bet, isCreator, onSaved }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(bet.current_value || '')
   const [saving, setSaving] = useState(false)
+  const hasValue = !!bet.current_value
 
   async function save() {
     setSaving(true)
@@ -77,8 +198,6 @@ function CurrentValueEditor({ bet, isCreator, onSaved }) {
     setEditing(false)
     onSaved(draft.trim() || null)
   }
-
-  const hasValue = !!bet.current_value
 
   return (
     <div style={{ ...CARD, padding: 16, marginBottom: 20 }}>
@@ -93,23 +212,13 @@ function CurrentValueEditor({ bet, isCreator, onSaved }) {
           </button>
         )}
       </div>
-
       {editing ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input
-            autoFocus
-            type="text"
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
+          <input autoFocus type="text" value={draft} onChange={e => setDraft(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && save()}
-            placeholder={
-              bet.bet_type === 'tiempo' ? 'Ej: Van 1h 20min...' :
-              bet.bet_type === 'ranking' ? 'Ej: Juan ya pasó a María' :
-              'Ej: 3 goles, 120 km...'
-            }
+            placeholder={bet.bet_type === 'tiempo' ? 'Ej: Van 1h 20min...' : 'Ej: 3 goles, 120 km...'}
             maxLength={120}
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(249,115,22,0.4)', borderRadius: 10, padding: '10px 14px', color: 'white', fontSize: 14, fontWeight: 600, outline: 'none', width: '100%', boxSizing: 'border-box' }}
-          />
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(249,115,22,0.4)', borderRadius: 10, padding: '10px 14px', color: 'white', fontSize: 14, fontWeight: 600, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={save} disabled={saving}
               style={{ ...ORANGE_BTN, flex: 1, padding: '10px 16px', fontSize: 13, opacity: saving ? 0.5 : 1 }}>
@@ -122,9 +231,9 @@ function CurrentValueEditor({ bet, isCreator, onSaved }) {
           </div>
         </div>
       ) : hasValue ? (
-        <p style={{ color: 'white', fontWeight: 700, fontSize: 20, margin: 0, letterSpacing: '-0.3px' }}>{bet.current_value}</p>
+        <p style={{ color: 'white', fontWeight: 700, fontSize: 22, margin: 0 }}>{bet.current_value}</p>
       ) : isCreator ? (
-        <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13, margin: 0 }}>Sin valor actual — tocá "Actualizar" para informar el estado</p>
+        <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13, margin: 0 }}>Sin valor — tocá "Actualizar" para informar el estado</p>
       ) : (
         <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13, margin: 0 }}>El creador todavía no actualizó el valor</p>
       )}
@@ -148,8 +257,12 @@ export default function BetDetail() {
   const [copied, setCopied] = useState(false)
   const [joining, setJoining] = useState(false)
   const [joinValue, setJoinValue] = useState('')
-  const [rankingPicks, setRankingPicks] = useState([]) // for ranking type join
+  const [rankingPicks, setRankingPicks] = useState([])
   const [showJoinInput, setShowJoinInput] = useState(false)
+  // Ranking prediction submission (for members who haven't submitted yet)
+  const [showPredictionForm, setShowPredictionForm] = useState(false)
+  const [predictionPicks, setPredictionPicks] = useState([])
+  const [savingPrediction, setSavingPrediction] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -170,13 +283,10 @@ export default function BetDetail() {
     setBet(betData)
     setParticipants(parts ?? [])
     setEliminations(elims ?? [])
-
     if (parts?.length) {
-      const nicknames = parts.map(p => p.nickname)
       const { data: users } = await supabase
-        .from('users')
-        .select('nickname, avatar_url, avatar_color')
-        .in('nickname', nicknames)
+        .from('users').select('nickname, avatar_url, avatar_color')
+        .in('nickname', parts.map(p => p.nickname))
       if (users) {
         const map = {}
         users.forEach(u => { map[u.nickname] = u })
@@ -212,6 +322,16 @@ export default function BetDetail() {
     await supabase.from('participants').insert({ bet_id: id, nickname, is_eliminated: false, bet_value: finalValue })
     setJoining(false)
     setShowJoinInput(false)
+  }
+
+  async function handleSubmitPrediction() {
+    if (predictionPicks.length === 0) return
+    setSavingPrediction(true)
+    const myParticipant = participants.find(p => p.nickname === nickname)
+    const finalValue = predictionPicks.map((item, i) => `${i + 1}. ${item}`).join(', ')
+    await supabase.from('participants').update({ bet_value: finalValue }).eq('id', myParticipant.id)
+    setSavingPrediction(false)
+    setShowPredictionForm(false)
   }
 
   async function handleEliminate(reason) {
@@ -259,9 +379,12 @@ export default function BetDetail() {
   const isMember = participants.some(p => p.nickname === nickname)
   const isCreator = bet.created_by === nickname
   const isExpired = new Date(bet.end_date) <= new Date() || expired
+  const isRanking = bet.bet_type === 'ranking'
   const typeMeta = TYPE_META[bet.bet_type] || TYPE_META.cuantitativa
   const rankingItems = bet.ranking_items || []
-  const isRanking = bet.bet_type === 'ranking'
+  const myParticipant = participants.find(p => p.nickname === nickname)
+  // Creator/member needs to submit ranking prediction if they haven't yet
+  const needsPrediction = isMember && isRanking && !myParticipant?.bet_value && !isExpired
 
   return (
     <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -274,9 +397,8 @@ export default function BetDetail() {
             <ArrowLeft size={17} />
           </button>
           <button onClick={handleShare} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            fontWeight: 700, fontSize: 13, letterSpacing: '0.12em',
-            padding: '8px 18px', borderRadius: 99, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13,
+            letterSpacing: '0.12em', padding: '8px 18px', borderRadius: 99, cursor: 'pointer',
             background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(249,115,22,0.15)',
             border: copied ? '1.5px solid rgba(34,197,94,0.35)' : '1.5px solid rgba(249,115,22,0.4)',
             color: copied ? '#86efac' : '#fdba74',
@@ -287,9 +409,9 @@ export default function BetDetail() {
           <div style={{ width: 40 }} />
         </div>
 
-        {/* Title + type */}
+        {/* Title */}
         <div className="anim-slide-up" style={{ marginBottom: 20, animationDelay: '0.1s' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'rgba(249,115,22,0.12)', color: '#fdba74', border: '1px solid rgba(249,115,22,0.25)' }}>
               {typeMeta.emoji} {typeMeta.label}
             </span>
@@ -303,14 +425,18 @@ export default function BetDetail() {
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '0 0 6px' }}>Creada por {bet.created_by}</p>
           {bet.description && <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>{bet.description}</p>}
 
-          {/* Ranking items list */}
+          {/* Ranking items: numbered list */}
           {isRanking && rankingItems.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-              {rankingItems.map((item, i) => (
-                <span key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {item}
-                </span>
-              ))}
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Ítems a ordenar</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {rankingItems.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 0', borderBottom: i < rankingItems.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 700, fontSize: 12, width: 18, flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -321,7 +447,7 @@ export default function BetDetail() {
             { label: 'Tiempo', icon: <Clock size={11} />, value: isExpired ? <span style={{ color: '#fca5a5' }}>Terminada</span> : <CountdownTimer endDate={bet.end_date} onExpire={handleExpire} /> },
             { label: 'Activos', icon: <Users size={11} />, value: `${active.length} / ${participants.length}` },
           ].map(s => (
-            <div key={s.label} style={{ ...CARD, flex: 1, padding: 16, textAlign: 'center' }}>
+            <div key={s.label} style={{ flex: 1, padding: 16, textAlign: 'center', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 6 }}>
                 {s.icon} {s.label}
               </div>
@@ -330,18 +456,17 @@ export default function BetDetail() {
           ))}
         </div>
 
-        {/* ── Current value ── */}
+        {/* Live tracker / current value */}
         <div className="anim-slide-up" style={{ animationDelay: '0.18s' }}>
-          <CurrentValueEditor
-            bet={bet}
-            isCreator={isCreator}
-            onSaved={val => setBet(b => ({ ...b, current_value: val }))}
-          />
+          {isRanking
+            ? <RankingLiveTracker bet={bet} isCreator={isCreator} onUpdate={val => setBet(b => ({ ...b, current_value: val }))} />
+            : <CurrentValueEditor bet={bet} isCreator={isCreator} onSaved={val => setBet(b => ({ ...b, current_value: val }))} />
+          }
         </div>
 
         {/* Prize */}
         {(bet.prize_text || bet.prize_image_url) && (
-          <div style={{ ...CARD, overflow: 'hidden', marginBottom: 20 }}>
+          <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 20, overflow: 'hidden', marginBottom: 20 }}>
             {bet.prize_image_url && <img src={bet.prize_image_url} alt="Premio" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />}
             <div style={{ padding: 16 }}>
               <p style={{ color: '#fbbf24', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>🏆 Premio</p>
@@ -364,28 +489,23 @@ export default function BetDetail() {
           </div>
         )}
 
-        {/* Join */}
+        {/* Join (non-member) */}
         {!isMember && !isExpired && (
           <div style={{ marginBottom: 20 }}>
             {showJoinInput ? (
-              <div className="anim-scale-in" style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="anim-scale-in" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>
                   {isRanking ? '¿En qué orden creés que va a quedar?' : '¿Cuál es tu predicción?'}
                 </p>
-
                 {isRanking ? (
                   <RankingSelector items={rankingItems} value={rankingPicks} onChange={setRankingPicks} />
                 ) : (
-                  <input
-                    autoFocus type="text" value={joinValue}
-                    onChange={e => setJoinValue(e.target.value)}
+                  <input autoFocus type="text" value={joinValue} onChange={e => setJoinValue(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleJoin()}
                     placeholder={bet.bet_value ? `Ej: ${bet.bet_value}` : 'Tu predicción...'}
                     maxLength={80}
-                    style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(249,115,22,0.4)', borderRadius: 10, padding: '12px 14px', color: 'white', fontSize: 15, fontWeight: 600, outline: 'none', width: '100%', boxSizing: 'border-box' }}
-                  />
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(249,115,22,0.4)', borderRadius: 10, padding: '12px 14px', color: 'white', fontSize: 15, fontWeight: 600, outline: 'none', width: '100%', boxSizing: 'border-box' }} />
                 )}
-
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={handleJoin} disabled={joining || (isRanking && rankingPicks.length < rankingItems.length)}
                     style={{ ...ORANGE_BTN, flex: 1, padding: '13px 16px', opacity: (joining || (isRanking && rankingPicks.length < rankingItems.length)) ? 0.5 : 1 }}>
@@ -398,9 +518,39 @@ export default function BetDetail() {
                 </div>
               </div>
             ) : (
-              <button onClick={() => setShowJoinInput(true)}
-                style={{ ...ORANGE_BTN, padding: '15px 24px', width: '100%' }}>
+              <button onClick={() => setShowJoinInput(true)} style={{ ...ORANGE_BTN, padding: '15px 24px', width: '100%' }}>
                 Unirse a la apuesta
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Prediction banner for members who haven't submitted ranking yet */}
+        {needsPrediction && (
+          <div style={{ marginBottom: 20 }}>
+            {showPredictionForm ? (
+              <div className="anim-scale-in" style={{ background: 'rgba(249,115,22,0.07)', border: '1.5px solid rgba(249,115,22,0.25)', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <p style={{ color: '#fdba74', fontSize: 13, fontWeight: 700, margin: '0 0 4px' }}>Tu predicción de ranking</p>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, margin: 0 }}>Ordená los ítems según tu predicción</p>
+                </div>
+                <RankingSelector items={rankingItems} value={predictionPicks} onChange={setPredictionPicks} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={handleSubmitPrediction}
+                    disabled={savingPrediction || predictionPicks.length < rankingItems.length}
+                    style={{ ...ORANGE_BTN, flex: 1, padding: '12px 16px', fontSize: 14, opacity: (savingPrediction || predictionPicks.length < rankingItems.length) ? 0.5 : 1 }}>
+                    {savingPrediction ? 'Guardando...' : <><Check size={14} /> Confirmar</>}
+                  </button>
+                  <button onClick={() => { setShowPredictionForm(false); setPredictionPicks([]) }}
+                    style={{ padding: '12px 14px', borderRadius: 99, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13 }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setShowPredictionForm(true)}
+                style={{ ...ORANGE_BTN, padding: '14px 24px', width: '100%', background: 'linear-gradient(135deg, rgba(249,115,22,0.7), rgba(234,88,12,0.7))', boxShadow: '0 4px 20px rgba(249,115,22,0.2)', border: '1.5px solid rgba(249,115,22,0.4)' }}>
+                🏅 Ingresar tu predicción de ranking
               </button>
             )}
           </div>
@@ -411,31 +561,36 @@ export default function BetDetail() {
           <p style={SECTION_TITLE}>En juego ({active.length})</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {active.map(p => (
-              <div key={p.id} style={{ ...CARD, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                  <UserAvatar
-                    nickname={p.nickname}
-                    avatarUrl={usersMap[p.nickname]?.avatar_url}
-                    avatarColor={usersMap[p.nickname]?.avatar_color}
-                    size={36}
-                  />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{p.nickname}</span>
-                      {p.nickname === nickname && <span style={{ color: '#fdba74', fontSize: 11 }}>(tú)</span>}
+              <div key={p.id} style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 20, padding: '12px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    <UserAvatar nickname={p.nickname} avatarUrl={usersMap[p.nickname]?.avatar_url} avatarColor={usersMap[p.nickname]?.avatar_color} size={36} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{p.nickname}</span>
+                        {p.nickname === nickname && <span style={{ color: '#fdba74', fontSize: 11 }}>(tú)</span>}
+                      </div>
+                      {/* For ranking: show prediction as numbered list if submitted */}
+                      {isRanking && p.bet_value ? (
+                        <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {p.bet_value.split(', ').map((entry, i) => (
+                            <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3 }}>{entry}</span>
+                          ))}
+                        </div>
+                      ) : isRanking && !p.bet_value ? (
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic', marginTop: 2, display: 'block' }}>Sin predicción</span>
+                      ) : p.bet_value ? (
+                        <span style={{ fontSize: 12, color: 'rgba(249,115,22,0.85)', fontWeight: 600, marginTop: 2, display: 'block' }}>{p.bet_value}</span>
+                      ) : null}
                     </div>
-                    {p.bet_value && (
-                      <span style={{ fontSize: 12, color: 'rgba(249,115,22,0.85)', fontWeight: 600, marginTop: 2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-                        {p.bet_value}
-                      </span>
-                    )}
                   </div>
+                  {!isExpired && isMember && active.length > 1 && (
+                    <button onClick={() => setEliminating(p.nickname)}
+                      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 10, cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: 'rgba(252,165,165,0.8)', border: '1px solid rgba(239,68,68,0.2)', marginLeft: 8 }}>
+                      <Skull size={12} /> Descartar
+                    </button>
+                  )}
                 </div>
-                {!isExpired && isMember && active.length > 1 && (
-                  <button onClick={() => setEliminating(p.nickname)} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 10, cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: 'rgba(252,165,165,0.8)', border: '1px solid rgba(239,68,68,0.2)', marginLeft: 8 }}>
-                    <Skull size={12} /> Descartar
-                  </button>
-                )}
               </div>
             ))}
           </div>
@@ -457,7 +612,7 @@ export default function BetDetail() {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 600, fontSize: 14, textDecoration: 'line-through' }}>{p.nickname}</span>
-                          {p.bet_value && <span style={{ fontSize: 11, color: 'rgba(249,115,22,0.3)', fontWeight: 600 }}>{p.bet_value}</span>}
+                          {p.bet_value && !isRanking && <span style={{ fontSize: 11, color: 'rgba(249,115,22,0.3)', fontWeight: 600 }}>{p.bet_value}</span>}
                         </div>
                         {elim && <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12, margin: '2px 0 0' }}>Por {elim.eliminated_by}: "{elim.reason}"</p>}
                       </div>
