@@ -6,6 +6,7 @@ import { getNickname } from '../lib/utils'
 import BetCard from '../components/BetCard'
 import SwipeCard from '../components/SwipeCard'
 import DraggableList from '../components/DraggableList'
+import PressButton from '../components/PressButton'
 
 function getHiddenIds() {
   try { return JSON.parse(localStorage.getItem('bf_hidden') || '[]') } catch { return [] }
@@ -82,7 +83,7 @@ function BottomNav({ onVault, onLeaderboard }) {
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.14)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.65)',
     backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
   }
   return (
@@ -92,30 +93,32 @@ function BottomNav({ onVault, onLeaderboard }) {
         position: 'fixed', bottom: 32, left: 24, zIndex: 20,
         display: 'flex', gap: 10,
       }}>
-        <button style={btnStyle} onClick={() => navigate('/')}>
+        <PressButton label="Inicio" tooltipPosition="above" style={btnStyle} onClick={() => navigate('/')}>
           <HomeIcon size={20} />
-        </button>
-        <button style={btnStyle} onClick={() => navigate('/vault')}>
+        </PressButton>
+        <PressButton label="Vault" tooltipPosition="above" style={btnStyle} onClick={() => navigate('/vault')}>
           <Archive size={20} />
-        </button>
-        <button style={btnStyle} onClick={() => navigate('/leaderboard')}>
+        </PressButton>
+        <PressButton label="Leaderboard" tooltipPosition="above" style={btnStyle} onClick={() => navigate('/leaderboard')}>
           <Trophy size={20} />
-        </button>
+        </PressButton>
       </div>
       {/* FAB right */}
-      <button
+      <PressButton
+        label="Nueva apuesta"
+        tooltipPosition="above"
         onClick={() => navigate('/create')}
         style={{
           position: 'fixed', bottom: 32, right: 24, zIndex: 20,
           width: 56, height: 56, borderRadius: '50%',
           background: 'linear-gradient(135deg, #f97316, #ea580c)',
           boxShadow: '0 8px 32px rgba(249,115,22,0.45)',
-          border: 'none', cursor: 'pointer',
+          border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
         }}
       >
         <Plus size={26} />
-      </button>
+      </PressButton>
     </>
   )
 }
@@ -209,20 +212,22 @@ export default function Home() {
             </p>
           </div>
 
-          <button
+          <PressButton
+            label="Unirse con código"
+            tooltipPosition="below"
             onClick={() => setShowJoin(v => !v)}
             style={{
               background: 'linear-gradient(135deg, #f97316, #ea580c)',
               boxShadow: '0 4px 20px rgba(249,115,22,0.4)',
               borderRadius: '6px', padding: '4px 8px',
               color: 'white', fontWeight: 700, fontSize: 18,
-              border: 'none', cursor: 'pointer',
+              border: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               minWidth: 36, minHeight: 32,
             }}
           >
             {showJoin ? <X size={18} /> : '···'}
-          </button>
+          </PressButton>
         </div>
 
         {/* Join popup */}
