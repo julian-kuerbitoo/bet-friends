@@ -77,7 +77,15 @@ function RankingLiveTracker({ bet, isCreator, onUpdate }) {
     onUpdate(JSON.stringify(newConfirmed))
   }
 
-  const nextPosition = confirmed.length + 1
+  // First tapped = last place (N), last remaining = 1st place
+  const nextPosition = allItems.length - confirmed.length
+
+  // Build display list sorted by position (1st at top)
+  // confirmed[i] was eliminated at step i → position = allItems.length - i
+  const confirmedWithPos = confirmed.map((item, i) => ({
+    item,
+    pos: allItems.length - i,
+  })).sort((a, b) => a.pos - b.pos)
 
   return (
     <>
@@ -86,21 +94,20 @@ function RankingLiveTracker({ bet, isCreator, onUpdate }) {
           🏅 Ranking en vivo
         </p>
 
-        {/* Confirmed positions */}
-        {confirmed.length > 0 && (
+        {/* Confirmed positions — sorted best to worst */}
+        {confirmedWithPos.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: remaining.length > 0 ? 14 : 0 }}>
-            {confirmed.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: i < confirmed.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            {confirmedWithPos.map(({ item, pos }, i) => (
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: i < confirmedWithPos.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                 <div style={{
                   width: 30, height: 30, borderRadius: 10, flexShrink: 0,
-                  background: i === 0 ? 'rgba(250,204,21,0.18)' : i === 1 ? 'rgba(148,163,184,0.15)' : i === 2 ? 'rgba(180,116,62,0.18)' : 'rgba(255,255,255,0.07)',
-                  border: `1px solid ${i === 0 ? 'rgba(250,204,21,0.35)' : i === 1 ? 'rgba(148,163,184,0.25)' : i === 2 ? 'rgba(180,116,62,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  background: pos === 1 ? 'rgba(250,204,21,0.18)' : pos === 2 ? 'rgba(148,163,184,0.15)' : pos === 3 ? 'rgba(180,116,62,0.18)' : 'rgba(255,255,255,0.07)',
+                  border: `1px solid ${pos === 1 ? 'rgba(250,204,21,0.35)' : pos === 2 ? 'rgba(148,163,184,0.25)' : pos === 3 ? 'rgba(180,116,62,0.3)' : 'rgba(255,255,255,0.1)'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: i < 3 ? 14 : 12,
-                  fontWeight: 900,
-                  color: i === 0 ? '#fde68a' : i === 1 ? '#cbd5e1' : i === 2 ? '#c6895a' : 'rgba(255,255,255,0.4)',
+                  fontSize: pos <= 3 ? 14 : 12, fontWeight: 900,
+                  color: pos === 1 ? '#fde68a' : pos === 2 ? '#cbd5e1' : pos === 3 ? '#c6895a' : 'rgba(255,255,255,0.4)',
                 }}>
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                  {pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos}
                 </div>
                 <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>{item}</span>
               </div>
@@ -108,17 +115,17 @@ function RankingLiveTracker({ bet, isCreator, onUpdate }) {
           </div>
         )}
 
-        {/* Remaining items (creator can tap X to confirm next position) */}
+        {/* Remaining items — still competing, creator taps X on the next to be eliminated */}
         {remaining.length > 0 && (
           <div>
             {confirmed.length > 0 && (
               <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, marginBottom: 10 }}>
-                {isCreator ? `Tocá la X cuando salga la posición #${nextPosition}:` : 'Todavía en juego:'}
+                {isCreator ? `Tocá la X en el siguiente que queda eliminado (posición #${nextPosition}):` : 'Todavía en juego:'}
               </p>
             )}
             {confirmed.length === 0 && (
               <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, marginBottom: 10 }}>
-                {isCreator ? `Tocá la X en el que salga primero (posición #1):` : 'El creador irá confirmando posiciones:'}
+                {isCreator ? `Tocá la X en el primero que quede eliminado (posición #${nextPosition}):` : 'El creador irá confirmando posiciones:'}
               </p>
             )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -159,13 +166,13 @@ function RankingLiveTracker({ bet, isCreator, onUpdate }) {
             padding: '28px 24px 44px',
           }}>
             <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 12 }}>
-              {nextPosition === 1 ? '🥇' : nextPosition === 2 ? '🥈' : nextPosition === 3 ? '🥉' : '🏅'}
+              {nextPosition === 1 ? '🥇' : nextPosition === 2 ? '🥈' : nextPosition === 3 ? '🥉' : '💀'}
             </div>
             <h3 style={{ color: 'white', fontWeight: 900, fontSize: 18, textAlign: 'center', margin: '0 0 8px' }}>
               ¿Confirmar posición #{nextPosition}?
             </h3>
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, textAlign: 'center', margin: '0 0 26px' }}>
-              <span style={{ color: 'white', fontWeight: 700 }}>{placingItem}</span> quedó en el lugar #{nextPosition}
+              <span style={{ color: 'white', fontWeight: 700 }}>{placingItem}</span> quedó en el lugar #{nextPosition} de {allItems.length}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button onClick={() => confirmPlace(placingItem)} disabled={saving}
