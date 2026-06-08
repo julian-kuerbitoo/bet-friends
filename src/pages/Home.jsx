@@ -227,20 +227,26 @@ export default function Home() {
 
         {/* Join popup */}
         {showJoin && (
-          <>
-            <div onClick={() => { setShowJoin(false); setJoinError('') }} style={{
+          <div
+            onClick={() => { setShowJoin(false); setJoinError('') }}
+            style={{
               position: 'fixed', inset: 0, zIndex: 30,
               background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-            }} />
-            <div className="anim-scale-in" style={{
-              position: 'fixed', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)', zIndex: 31,
-              width: 'calc(100% - 40px)', maxWidth: 480,
-              background: 'rgba(20,16,35,0.92)',
-              backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 20, padding: '20px', boxSizing: 'border-box',
-            }}>
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 20px', boxSizing: 'border-box',
+            }}
+          >
+            <div
+              className="anim-scale-in"
+              onClick={e => e.stopPropagation()}
+              style={{
+                width: '100%', maxWidth: 420,
+                background: 'rgba(20,16,35,0.96)',
+                backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 20, padding: '20px', boxSizing: 'border-box',
+              }}
+            >
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
                 Código de invitación
               </p>
@@ -274,7 +280,7 @@ export default function Home() {
               </form>
               {joinError && <p style={{ color: '#fb923c', fontSize: 12, marginTop: 8 }}>{joinError}</p>}
             </div>
-          </>
+          </div>
         )}
 
         {/* Content */}
