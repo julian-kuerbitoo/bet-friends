@@ -232,7 +232,7 @@ export default function Home() {
               position: 'fixed', inset: 0, zIndex: 30,
               background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
             }} />
-            <div style={{
+            <div className="anim-scale-in" style={{
               position: 'fixed', top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)', zIndex: 31,
               width: 'calc(100% - 40px)', maxWidth: 480,
@@ -244,7 +244,7 @@ export default function Home() {
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
                 Código de invitación
               </p>
-              <form onSubmit={handleJoin} style={{ display: 'flex', gap: 8 }}>
+              <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input
                   type="text"
                   value={joinCode}
@@ -253,20 +253,23 @@ export default function Home() {
                   maxLength={6}
                   autoFocus
                   style={{
-                    flex: 1, background: 'rgba(255,255,255,0.07)',
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(255,255,255,0.07)',
                     border: '1.5px solid rgba(249,115,22,0.45)',
-                    borderRadius: 10, padding: '12px 16px',
-                    color: 'white', fontWeight: 700, fontSize: 14,
-                    letterSpacing: '0.15em', textTransform: 'uppercase', outline: 'none',
+                    borderRadius: 10, padding: '13px 16px',
+                    color: 'white', fontWeight: 700, fontSize: 16,
+                    letterSpacing: '0.2em', textTransform: 'uppercase', outline: 'none',
+                    textAlign: 'center',
                   }}
                 />
                 <button type="submit" style={{
                   background: 'linear-gradient(135deg, #f97316, #ea580c)',
                   boxShadow: '0 4px 16px rgba(249,115,22,0.35)',
-                  border: 'none', borderRadius: 10, padding: '4px 16px',
-                  color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
+                  border: 'none', borderRadius: 10, padding: '13px 16px',
+                  color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  width: '100%',
                 }}>
-                  Join Bet
+                  Unirse a la apuesta
                 </button>
               </form>
               {joinError && <p style={{ color: '#fb923c', fontSize: 12, marginTop: 8 }}>{joinError}</p>}
