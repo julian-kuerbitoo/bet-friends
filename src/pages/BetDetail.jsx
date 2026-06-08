@@ -279,7 +279,7 @@ export default function BetDetail() {
                     )}
                   </div>
                 </div>
-                {!isExpired && isMember && p.nickname !== nickname && (
+                {!isExpired && isMember && active.length > 1 && (
                   <button onClick={() => setEliminating(p.nickname)}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 10, cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: 'rgba(252,165,165,0.8)', border: '1px solid rgba(239,68,68,0.2)' }}>
                     <Skull size={12} /> Descartar
