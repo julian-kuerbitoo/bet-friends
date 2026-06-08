@@ -139,7 +139,7 @@ export default function DraggableList({ items, renderItem, storageKey, gap = 10 
                 touchAction: dragging ? 'none' : 'pan-y',
               }}
             >
-              {renderItem(item, isBeingDragged)}
+              {renderItem(item, isBeingDragged, idx)}
             </div>
 
             {/* Insert indicator below last */}
@@ -168,7 +168,7 @@ export default function DraggableList({ items, renderItem, storageKey, gap = 10 
           opacity: 0.95,
           filter: 'brightness(1.1)',
         }}>
-          {renderItem(sorted[dragCardIdx], false)}
+          {renderItem(sorted[dragCardIdx], false, dragCardIdx)}
         </div>
       )}
 

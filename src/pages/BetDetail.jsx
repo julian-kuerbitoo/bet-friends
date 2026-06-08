@@ -137,7 +137,7 @@ export default function BetDetail() {
       <div style={{ ...PAGE_PADDING, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div className="anim-slide-up" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, animationDelay: '0.05s' }}>
           <button style={GLASS_BTN} onClick={() => navigate('/')}>
             <ArrowLeft size={17} />
           </button>
@@ -162,7 +162,7 @@ export default function BetDetail() {
         </div>
 
         {/* Title */}
-        <div style={{ marginBottom: 20 }}>
+        <div className="anim-slide-up" style={{ marginBottom: 20, animationDelay: '0.1s' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 4 }}>
             <h1 style={{ color: 'white', fontWeight: 900, fontSize: 24, textTransform: 'uppercase', margin: 0, lineHeight: 1.2, flex: 1 }}>{bet.title}</h1>
             {isExpired && (
@@ -176,7 +176,7 @@ export default function BetDetail() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        <div className="anim-slide-up" style={{ display: 'flex', gap: 12, marginBottom: 20, animationDelay: '0.15s' }}>
           {[
             { label: 'Tiempo', icon: <Clock size={11} />, value: isExpired ? <span style={{ color: '#fca5a5' }}>Terminada</span> : <CountdownTimer endDate={bet.end_date} onExpire={handleExpire} /> },
             { label: 'Activos', icon: <Users size={11} />, value: `${active.length} / ${participants.length}` },
@@ -219,7 +219,7 @@ export default function BetDetail() {
         {!isMember && !isExpired && (
           <div style={{ marginBottom: 20 }}>
             {showJoinInput ? (
-              <div style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="anim-scale-in" style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: 0 }}>
                   ¿Cuál es tu valor en esta apuesta?
                 </p>
@@ -258,7 +258,7 @@ export default function BetDetail() {
         )}
 
         {/* Active participants */}
-        <div style={{ marginBottom: 20 }}>
+        <div className="anim-slide-up" style={{ marginBottom: 20, animationDelay: '0.2s' }}>
           <p style={SECTION_TITLE}>En juego ({active.length})</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {active.map(p => (

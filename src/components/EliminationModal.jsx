@@ -22,7 +22,7 @@ export default function EliminationModal({ participant, onConfirm, onClose }) {
       />
 
       {/* Sheet */}
-      <div style={{
+      <div className="anim-sheet-up" style={{
         position: 'relative',
         zIndex: 1,
         width: '100%',

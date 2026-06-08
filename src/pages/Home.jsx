@@ -31,7 +31,7 @@ function ConfirmPopup({ type, bet, onConfirm, onCancel }) {
         position: 'fixed', inset: 0, zIndex: 40,
         background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       }} />
-      <div style={{
+      <div className="anim-sheet-up" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 41,
         background: 'rgba(18,14,32,0.96)',
         backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
@@ -199,7 +199,7 @@ export default function Home() {
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', flex: 1, padding: '48px 20px 120px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div className="anim-slide-up" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, animationDelay: '0.05s' }}>
           <div>
             <h1 style={{ color: 'white', fontSize: 30, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.5px', lineHeight: 1, margin: 0 }}>
               Mis apuestas
@@ -299,13 +299,15 @@ export default function Home() {
                       items={myActiveBets}
                       storageKey={`bf_order_${nickname}`}
                       gap={10}
-                      renderItem={(bet) => (
-                        <SwipeCard
-                          onSwipeLeft={() => setConfirm({ type: 'delete', bet })}
-                          onSwipeRight={() => setConfirm({ type: 'vault', bet })}
-                        >
-                          <BetCard bet={bet} />
-                        </SwipeCard>
+                      renderItem={(bet, _, idx) => (
+                        <div className="anim-slide-up" style={{ animationDelay: `${0.1 + idx * 0.07}s` }}>
+                          <SwipeCard
+                            onSwipeLeft={() => setConfirm({ type: 'delete', bet })}
+                            onSwipeRight={() => setConfirm({ type: 'vault', bet })}
+                          >
+                            <BetCard bet={bet} />
+                          </SwipeCard>
+                        </div>
                       )}
                     />
                   </section>
@@ -320,13 +322,15 @@ export default function Home() {
                       items={otherBets}
                       storageKey={`bf_order_other_${nickname}`}
                       gap={10}
-                      renderItem={(bet) => (
-                        <SwipeCard
-                          onSwipeLeft={() => setConfirm({ type: 'delete', bet })}
-                          onSwipeRight={() => setConfirm({ type: 'vault', bet })}
-                        >
-                          <BetCard bet={bet} />
-                        </SwipeCard>
+                      renderItem={(bet, _, idx) => (
+                        <div className="anim-slide-up" style={{ animationDelay: `${0.15 + idx * 0.07}s` }}>
+                          <SwipeCard
+                            onSwipeLeft={() => setConfirm({ type: 'delete', bet })}
+                            onSwipeRight={() => setConfirm({ type: 'vault', bet })}
+                          >
+                            <BetCard bet={bet} />
+                          </SwipeCard>
+                        </div>
                       )}
                     />
                   </section>
