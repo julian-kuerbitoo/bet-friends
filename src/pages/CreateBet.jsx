@@ -38,8 +38,7 @@ export default function CreateBet() {
   const navigate = useNavigate()
   const nickname = getNickname()
   const [step, setStep] = useState(1)
-  const EMOJIS = ['🏆','🎯','⚽','🏀','🎮','🎲','🍺','🚗','🎸','🥊','🤑','🔥','👑','💀','🎳','🏋️']
-  const [form, setForm] = useState({ title: '', description: '', end_date: '', end_time: '23:59', prize_text: '', watermark_emoji: '🏆' })
+  const [form, setForm] = useState({ title: '', description: '', bet_value: '', end_date: '', end_time: '23:59', prize_text: '', watermark_emoji: '🏆' })
   const [prizeImage, setPrizeImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -59,7 +58,7 @@ export default function CreateBet() {
     if (step === 1 && !form.title.trim()) return setError('El título es obligatorio')
     if (step === 2) {
       if (!form.end_date) return setError('La fecha es obligatoria')
-      if (new Date(`${form.end_date}T${form.end_time}:00`) <= new Date()) return setError('La fecha debe ser en el futuro')
+      if (new Date(`${form.end_date}T${form.end_time}:00`) <= new Date()) return setError('La hora ya pasó, elegí una hora futura')
     }
     setError('')
     setStep(s => s + 1)
@@ -81,6 +80,7 @@ export default function CreateBet() {
       }
       const { data: bet, error: betError } = await supabase.from('bets').insert({
         title: form.title.trim(), description: form.description.trim() || null,
+        bet_value: form.bet_value.trim() || null,
         prize_text: form.prize_text.trim() || null, prize_image_url,
         watermark_emoji: form.watermark_emoji || '🏆',
         end_date: endDateTime.toISOString(), invite_code: generateInviteCode(),
@@ -125,6 +125,11 @@ export default function CreateBet() {
                   placeholder="Ej: ¿Cuántos goles mete Messi este mes?" style={INPUT} maxLength={100} autoFocus />
               </div>
               <div>
+                <label style={LABEL}>Valor de la apuesta</label>
+                <input type="text" value={form.bet_value} onChange={e => handleField('bet_value', e.target.value)}
+                  placeholder="Ej: 3 goles, 250.000 carreras, 10 km" style={INPUT} maxLength={80} />
+              </div>
+              <div>
                 <label style={LABEL}>Reglas / Contexto</label>
                 <textarea value={form.description} onChange={e => handleField('description', e.target.value)}
                   placeholder="Aclaraciones, condiciones..."
@@ -149,7 +154,7 @@ export default function CreateBet() {
             <div style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={LABEL}>Fecha de vencimiento</label>
-                <input type="date" value={form.end_date} min={new Date().toISOString().split('T')[0]}
+                <input type="date" value={form.end_date}
                   onChange={e => handleField('end_date', e.target.value)} style={INPUT} />
               </div>
               <div>
@@ -180,26 +185,28 @@ export default function CreateBet() {
                 <input type="text" value={form.prize_text} onChange={e => handleField('prize_text', e.target.value)}
                   placeholder="Ej: El perdedor invita la cena" style={INPUT} maxLength={200} autoFocus />
               </div>
-              {/* Emoji watermark picker */}
+              {/* Emoji watermark */}
               <div>
                 <label style={LABEL}>Emoji de la tarjeta</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {EMOJIS.map(em => (
-                    <button
-                      key={em}
-                      type="button"
-                      onClick={() => handleField('watermark_emoji', em)}
-                      style={{
-                        width: 40, height: 40, borderRadius: 10, fontSize: 20,
-                        background: form.watermark_emoji === em ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.06)',
-                        border: form.watermark_emoji === em ? '2px solid rgba(249,115,22,0.7)' : '1px solid rgba(255,255,255,0.1)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {em}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+                  }}>
+                    {form.watermark_emoji || '🏆'}
+                  </div>
+                  <input
+                    type="text"
+                    value={form.watermark_emoji}
+                    onChange={e => handleField('watermark_emoji', e.target.value)}
+                    placeholder="🏆"
+                    style={{ ...INPUT, fontSize: 22, textAlign: 'center', maxWidth: 80 }}
+                    maxLength={4}
+                  />
+                  <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, lineHeight: 1.4 }}>
+                    Escribí cualquier emoji de tu teclado
+                  </span>
                 </div>
               </div>
 
