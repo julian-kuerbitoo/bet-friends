@@ -7,6 +7,7 @@ import { showLocalNotification, sendPush } from '../lib/notifications'
 import { CARD, ORANGE_BTN, GLASS_BTN, LABEL, PAGE_PADDING, SECTION_TITLE } from '../lib/styles'
 import CountdownTimer from '../components/CountdownTimer'
 import EliminationModal from '../components/EliminationModal'
+import UserAvatar from '../components/UserAvatar'
 
 export default function BetDetail() {
   const { id } = useParams()
@@ -16,6 +17,7 @@ export default function BetDetail() {
   const [bet, setBet] = useState(null)
   const [participants, setParticipants] = useState([])
   const [eliminations, setEliminations] = useState([])
+  const [usersMap, setUsersMap] = useState({}) // nickname → { avatar_url, avatar_color }
   const [loading, setLoading] = useState(true)
   const [eliminating, setEliminating] = useState(null)
   const [expired, setExpired] = useState(false)
@@ -39,7 +41,24 @@ export default function BetDetail() {
       supabase.from('participants').select('*').eq('bet_id', id).order('joined_at'),
       supabase.from('eliminations').select('*').eq('bet_id', id).order('created_at'),
     ])
-    setBet(betData); setParticipants(parts ?? []); setEliminations(elims ?? [])
+    setBet(betData)
+    setParticipants(parts ?? [])
+    setEliminations(elims ?? [])
+
+    // Fetch user profiles for all participants
+    if (parts?.length) {
+      const nicknames = parts.map(p => p.nickname)
+      const { data: users } = await supabase
+        .from('users')
+        .select('nickname, avatar_url, avatar_color')
+        .in('nickname', nicknames)
+      if (users) {
+        const map = {}
+        users.forEach(u => { map[u.nickname] = u })
+        setUsersMap(map)
+      }
+    }
+
     setLoading(false)
   }
 
@@ -264,9 +283,12 @@ export default function BetDetail() {
             {active.map(p => (
               <div key={p.id} style={{ ...CARD, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
-                    {p.nickname[0].toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    nickname={p.nickname}
+                    avatarUrl={usersMap[p.nickname]?.avatar_url}
+                    avatarColor={usersMap[p.nickname]?.avatar_color}
+                    size={36}
+                  />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{p.nickname}</span>
@@ -300,8 +322,13 @@ export default function BetDetail() {
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
-                        {p.nickname[0].toUpperCase()}
+                      <div style={{ opacity: 0.35, flexShrink: 0 }}>
+                        <UserAvatar
+                          nickname={p.nickname}
+                          avatarUrl={usersMap[p.nickname]?.avatar_url}
+                          avatarColor={usersMap[p.nickname]?.avatar_color}
+                          size={36}
+                        />
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
